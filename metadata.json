@@ -1,0 +1,6 @@
+{
+  "name": "AI StoryWizard",
+  "description": "AI-powered educational storytelling platform featuring interactive branching reader, studio audio narration, educator comprehension analytics, and child explorer dashboard.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
