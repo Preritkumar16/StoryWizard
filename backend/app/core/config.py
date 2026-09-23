@@ -1,9 +1,16 @@
 import os
+from pathlib import Path
 from typing import List
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
-load_dotenv()
+# Search for backend/.env first, then root .env
+backend_dir = Path(__file__).resolve().parent.parent.parent
+env_path = backend_dir / ".env"
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+else:
+    load_dotenv()
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "AI StoryWizard API"
@@ -11,9 +18,13 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Secrets & Authentication
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "ai-storywizard-super-secret-jwt-key-2026")
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 day
+    SECRET_KEY: str = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY", "ai-storywizard-super-secret-jwt-key-2026")
+    ALGORITHM: str = os.getenv("JWT_ALGORITHM") or os.getenv("ALGORITHM", "HS256")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+
+    # MongoDB Configuration
+    MONGODB_URI: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017/ai_storywizard")
+    DATABASE_NAME: str = os.getenv("DATABASE_NAME", "ai_storywizard")
 
     # Google Gemini API
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
