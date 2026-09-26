@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import auth, stories, parent
+from app.routers import auth, stories, parent, ai
 from app.database.connection import connect_to_mongodb, close_mongodb_connection, check_database_health
 from app.database.collections import init_database_indexes
 from app.database.seed import seed_dev_accounts
@@ -45,6 +45,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(stories.router, prefix=settings.API_V1_STR)
 app.include_router(parent.router, prefix=settings.API_V1_STR)
+app.include_router(ai.router, prefix=settings.API_V1_STR)
 
 @app.get("/health", tags=["System"])
 async def health_check():
@@ -66,6 +67,7 @@ async def root():
         "endpoints": {
             "auth": f"{settings.API_V1_STR}/auth/login",
             "explore_topic": f"{settings.API_V1_STR}/stories/explore-topic",
+            "ai_generate": f"{settings.API_V1_STR}/ai/generate-story",
             "child_progress": f"{settings.API_V1_STR}/parent/child-progress/{{child_id}}",
             "parent_controls": f"{settings.API_V1_STR}/parent/controls/{{child_id}}",
         }
