@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.routers import auth, stories, parent
 from app.database.connection import connect_to_mongodb, close_mongodb_connection, check_database_health
 from app.database.collections import init_database_indexes
+from app.database.seed import seed_dev_accounts
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -12,11 +13,13 @@ async def lifespan(app: FastAPI):
     FastAPI Application Lifespan:
     Initializes asynchronous MongoDB Motor connection on startup,
     creates essential performance indexes if reachable,
+    seeds default development accounts,
     and cleanly closes connections on shutdown.
     """
     connected = await connect_to_mongodb()
     if connected:
         await init_database_indexes()
+        await seed_dev_accounts()
     yield
     await close_mongodb_connection()
 

@@ -1,10 +1,13 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 
 class LoginRequest(BaseModel):
-    username_or_email: str = Field(..., example="alex.chen" or "sarah.chen@example.com")
-    password_or_pin: str = Field(..., example="1234")
     role: str = Field(..., example="student", description="Role: 'student' or 'parent'")
+    username_or_email: Optional[str] = Field(None, description="Username or email address")
+    password_or_pin: Optional[str] = Field(None, description="Password or PIN")
+    identifier: Optional[str] = Field(None, description="Identifier (email, username, or child code)")
+    password: Optional[str] = Field(None, description="Parent password")
+    pin: Optional[str] = Field(None, description="Student PIN")
 
 class RolePermissions(BaseModel):
     can_explore_topics: bool
