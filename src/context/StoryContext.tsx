@@ -18,12 +18,14 @@ import {
   INITIAL_CHILD_TOPIC_HISTORY,
   INITIAL_LEARNING_ANALYTICS,
   heroImg,
-  crystalCaveImg
+  crystalCaveImg,
+  leoAvatarImg
 } from '../data/mockData';
 import { startAmbientSoundscape, setAmbientVolume, stopAmbientSoundscape } from '../utils/audioSynth';
 import { storyService } from '../services/storyService';
 import { adaptGeneratedStoryToReader } from '../utils/storyAdapter';
 import confetti from 'canvas-confetti';
+import { useAuth } from './AuthContext';
 
 interface StoryContextType {
   role: Role;
@@ -71,8 +73,9 @@ const evaluateTopicAgeRating = (topic: string): { assessedAge: number; isAgeMism
 };
 
 export const StoryProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [role, setRoleState] = useState<Role>('student');
-  const [currentUser, setCurrentUser] = useState<UserProfile>(INITIAL_STUDENT);
+  const { user: authUser, role: authRole } = useAuth();
+  const role: Role = authRole === 'parent' ? 'parent' : 'student';
+
   const [parentalControls, setParentalControls] = useState<ParentalControls>(INITIAL_PARENTAL_CONTROLS);
   const [ageMismatchAlerts, setAgeMismatchAlerts] = useState<AgeMismatchAlert[]>(INITIAL_AGE_MISMATCH_ALERTS);
   const [childTopicsLearned, setChildTopicsLearned] = useState<ChildTopicHistory[]>(INITIAL_CHILD_TOPIC_HISTORY);
@@ -83,13 +86,36 @@ export const StoryProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     new Set(['luminescence', 'subterranean', 'transparent', 'harmonic', 'trajectory'])
   );
 
-  const setRole = (newRole: Role) => {
-    setRoleState(newRole);
-    if (newRole === 'student') {
-      setCurrentUser(INITIAL_STUDENT);
-    } else {
-      setCurrentUser(INITIAL_PARENT);
-    }
+  const [userPreferences, setUserPreferences] = useState<UserProfile['preferences']>({
+    voiceId: 'grandpa-oak',
+    playbackSpeed: 1.0,
+    fontSize: 'normal',
+    dyslexicFont: false,
+    highContrast: false,
+    ambientSound: 'enchanted-forest',
+    ambientVolume: 0.3,
+  });
+  const [xp, setXp] = useState(1650);
+  const [streakDays] = useState(9);
+  const [minutesReadToday] = useState(22);
+
+  // Compute currentUser dynamically from authenticated identity
+  const currentUser: UserProfile = {
+    id: authUser?.userId || (role === 'student' ? 'student-alex' : 'parent-sarah'),
+    name: authUser?.name || (role === 'student' ? 'Student Explorer' : 'Parent Supervisor'),
+    role,
+    avatar: role === 'student' ? leoAvatarImg : 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=256',
+    gradeLevel: '3rd Grade',
+    xp,
+    level: Math.floor(xp / 300) + 1,
+    streakDays,
+    minutesReadToday,
+    badges: INITIAL_STUDENT.badges,
+    preferences: userPreferences,
+  };
+
+  const setRole = (_newRole: Role) => {
+    // Role is governed by AuthContext session; retained for API contract compatibility
   };
 
   // Sync ambient audio preferences
@@ -128,17 +154,14 @@ export const StoryProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const addXP = (amount: number) => {
-    setCurrentUser(prev => {
-      const newXp = prev.xp + amount;
+    setXp(prev => {
+      const newXp = prev + amount;
       const nextLevel = Math.floor(newXp / 300) + 1;
-      if (nextLevel > prev.level) {
+      const currentLevel = Math.floor(prev / 300) + 1;
+      if (nextLevel > currentLevel) {
         triggerCelebration();
       }
-      return {
-        ...prev,
-        xp: newXp,
-        level: nextLevel,
-      };
+      return newXp;
     });
   };
 
@@ -167,12 +190,9 @@ export const StoryProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const updateUserPreferences = (prefs: Partial<UserProfile['preferences']>) => {
-    setCurrentUser(prev => ({
+    setUserPreferences(prev => ({
       ...prev,
-      preferences: {
-        ...prev.preferences,
-        ...prefs,
-      },
+      ...prefs,
     }));
   };
 

@@ -23,6 +23,13 @@ export interface TokenResponsePayload {
   permissions: RolePermissions;
 }
 
+export interface CurrentUserResponse {
+  user_id: string;
+  role: 'student' | 'parent';
+  name: string;
+  token_expires?: number;
+}
+
 export const authService = {
   /**
    * Authenticate student via 4-digit PIN or parent via email/password.
@@ -36,6 +43,15 @@ export const authService = {
       authService.setStoredUser(data);
     }
     return data;
+  },
+
+  /**
+   * Retrieve active authenticated session and user profile.
+   * Endpoint: GET /api/v1/auth/me
+   */
+  async getCurrentUser(): Promise<CurrentUserResponse> {
+    const response = await apiClient.get<CurrentUserResponse>('/auth/me');
+    return response.data;
   },
 
   /**

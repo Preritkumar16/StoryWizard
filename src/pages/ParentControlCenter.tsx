@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useStory } from '../context/StoryContext';
+import { useAuth } from '../context/AuthContext';
 import {
   Shield,
   Clock,
@@ -29,6 +30,7 @@ export const ParentControlCenter: React.FC = () => {
     toggleWordMastered,
     triggerCelebration
   } = useStory();
+  const { user: authUser } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'topics' | 'analytics' | 'controls'>('overview');
   const [saveBanner, setSaveBanner] = useState(false);
@@ -67,7 +69,7 @@ export const ParentControlCenter: React.FC = () => {
               <Shield className="h-4 w-4 text-emerald-600" />
               <span>Parent Supervision & Safety Center</span>
               <span aria-hidden="true">·</span>
-              <span>Supervising Alex Chen</span>
+              <span>Account: {authUser?.name || 'Parent Supervisor'}</span>
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 font-headline">
               Parent Supervision Center

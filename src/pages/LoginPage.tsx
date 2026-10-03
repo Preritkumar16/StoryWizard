@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useStory } from '../context/StoryContext';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { leoAvatarImg } from '../data/mockData';
-import { authService } from '../services/authService';
 import {
   Compass,
   Shield,
@@ -16,10 +15,15 @@ import {
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { role, setRole } = useStory();
+  const { login, isAuthenticated, role: authRole } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<'student' | 'parent'>(role);
+  const requestedRole = searchParams.get('role');
+  const [activeTab, setActiveTab] = useState<'student' | 'parent'>(
+    requestedRole === 'parent' ? 'parent' : 'student'
+  );
+
   const [pin, setPin] = useState('1234');
   const [studentUsername, setStudentUsername] = useState('alex.chen');
   const [parentEmail, setParentEmail] = useState('sarah.chen@example.com');
@@ -27,28 +31,31 @@ export const LoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // If already authenticated, redirect to appropriate portal
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (authRole === 'parent') {
+        navigate('/parent/control', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [isAuthenticated, authRole, navigate]);
+
   const handleStudentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
 
     try {
-      await authService.login({
+      await login({
         username_or_email: studentUsername.trim(),
         password_or_pin: pin.trim(),
         role: 'student',
       });
-      setRole('student');
       navigate('/dashboard');
     } catch (err: any) {
       console.warn('Student authentication notice:', err);
-      // In local preview without live backend process, allow fallback navigation
-      if (err?.code === 'ERR_NETWORK' || err?.message?.includes('Network Error')) {
-        console.info('FastAPI backend offline; applying sandbox session for preview.');
-        setRole('student');
-        navigate('/dashboard');
-        return;
-      }
       const detail = err?.response?.data?.detail || err?.message || 'Authentication failed. Please verify Explorer PIN.';
       setErrorMessage(detail);
     } finally {
@@ -62,21 +69,14 @@ export const LoginPage: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      await authService.login({
+      await login({
         username_or_email: parentEmail.trim(),
         password_or_pin: parentPassword,
         role: 'parent',
       });
-      setRole('parent');
       navigate('/parent/control');
     } catch (err: any) {
       console.warn('Parent authentication notice:', err);
-      if (err?.code === 'ERR_NETWORK' || err?.message?.includes('Network Error')) {
-        console.info('FastAPI backend offline; applying sandbox session for preview.');
-        setRole('parent');
-        navigate('/parent/control');
-        return;
-      }
       const detail = err?.response?.data?.detail || err?.message || 'Authentication failed. Please verify credentials.';
       setErrorMessage(detail);
     } finally {
@@ -106,7 +106,6 @@ export const LoginPage: React.FC = () => {
               type="button"
               onClick={() => {
                 setActiveTab('student');
-                setRole('student');
                 setErrorMessage(null);
               }}
               className={`flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition ${
@@ -123,7 +122,6 @@ export const LoginPage: React.FC = () => {
               type="button"
               onClick={() => {
                 setActiveTab('parent');
-                setRole('parent');
                 setErrorMessage(null);
               }}
               className={`flex items-center justify-center gap-2 py-2.5 text-xs font-bold rounded-lg transition ${
@@ -282,7 +280,6 @@ export const LoginPage: React.FC = () => {
               onClick={() => {
                 const next = activeTab === 'student' ? 'parent' : 'student';
                 setActiveTab(next);
-                setRole(next);
                 setErrorMessage(null);
               }}
               className="text-xs text-slate-500 hover:text-indigo-600 font-semibold"

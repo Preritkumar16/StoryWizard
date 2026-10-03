@@ -18,17 +18,15 @@ import {
 } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
-  const { setRole, setActiveStoryId } = useStory();
+  const { setActiveStoryId } = useStory();
   const navigate = useNavigate();
 
   const handleStudentLogin = () => {
-    setRole('student');
-    navigate('/dashboard');
+    navigate('/login?role=student');
   };
 
   const handleParentLogin = () => {
-    setRole('parent');
-    navigate('/parent/control');
+    navigate('/login?role=parent');
   };
 
   return (
