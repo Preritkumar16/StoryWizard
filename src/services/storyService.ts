@@ -66,7 +66,98 @@ export interface ExploreTopicResponsePayload {
   age_mismatch_alert?: BackendAgeMismatchAlert | null;
 }
 
+/**
+ * Step 4/5 Multi-Agent Story Generation Schemas
+ * Directly matching FastAPI router POST /api/v1/ai/generate-story
+ */
+export interface GenerateStoryRequestPayload {
+  topic: string;
+  interests?: string[];
+  grade_band?: string; // 'Grade 1-2' | 'Grade 3-4' | 'Grade 5-6'
+  learning_objective?: string;
+  story_requirements?: Record<string, any>;
+}
+
+export interface VocabularyFocusItem {
+  word: string;
+  definition: string;
+  context?: string;
+  phonetic?: string;
+  tier?: string;
+}
+
+export interface GeneratedStoryChapter {
+  chapter_number: number;
+  title: string;
+  content: string | string[];
+  vocabulary_focus?: VocabularyFocusItem[];
+}
+
+export interface GeneratedBranchingOption {
+  choice_id: string;
+  label: string;
+}
+
+export interface GeneratedStoryData {
+  title: string;
+  grade_band: string;
+  topic: string;
+  summary: string;
+  chapters: GeneratedStoryChapter[];
+  branching_options?: GeneratedBranchingOption[];
+  word_count?: number;
+}
+
+export interface EducationalValidationData {
+  is_aligned: boolean;
+  alignment_score: number;
+  strengths?: string[];
+  educational_summary?: string;
+  recommendations?: string[];
+}
+
+export interface SafetyValidationData {
+  is_safe: boolean;
+  safety_score: number;
+  flagged_categories?: string[];
+  reason?: string;
+}
+
+export interface StoryGenerationMetadata {
+  user_id?: string;
+  topic: string;
+  grade_band: string;
+  model: string;
+  live_api_invoked: boolean;
+  execution_time_seconds: number;
+}
+
+export interface GenerateStoryResponsePayload {
+  status: 'completed' | 'needs_educational_revision' | 'rejected_safety' | 'failed' | string;
+  story?: GeneratedStoryData | null;
+  educational_validation?: EducationalValidationData | null;
+  safety_validation?: SafetyValidationData | null;
+  metadata: StoryGenerationMetadata;
+  errors?: string[];
+}
+
 export const storyService = {
+  /**
+   * Synthesize a personalized educational story via the Multi-Agent LangGraph workflow.
+   * Endpoint: POST /api/v1/ai/generate-story
+   * Protected by Step 3 RBAC (student or parent access).
+   */
+  async generateStory(payload: GenerateStoryRequestPayload): Promise<GenerateStoryResponsePayload> {
+    const response = await apiClient.post<GenerateStoryResponsePayload>(
+      '/ai/generate-story',
+      payload,
+      {
+        timeout: 120000, // 120s timeout to accommodate multi-agent LLM reasoning pipeline
+      }
+    );
+    return response.data;
+  },
+
   /**
    * Synthesize a personalized interactive story adventure from a topic inquiry.
    * Endpoint: POST /api/v1/stories/explore-topic

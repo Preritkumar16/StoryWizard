@@ -21,6 +21,8 @@ import {
   crystalCaveImg
 } from '../data/mockData';
 import { startAmbientSoundscape, setAmbientVolume, stopAmbientSoundscape } from '../utils/audioSynth';
+import { storyService } from '../services/storyService';
+import { adaptGeneratedStoryToReader } from '../utils/storyAdapter';
 import confetti from 'canvas-confetti';
 
 interface StoryContextType {
@@ -36,7 +38,13 @@ interface StoryContextType {
   stories: Story[];
   activeStoryId: string;
   setActiveStoryId: (id: string) => void;
-  exploreNewTopic: (topic: string, gradeLevel?: string) => Promise<Story>;
+  exploreNewTopic: (
+    topic: string,
+    gradeLevel?: string,
+    interests?: string[],
+    learningObjective?: string
+  ) => Promise<Story>;
+  addGeneratedStory: (story: Story) => void;
   masteredWords: Set<string>;
   toggleWordMastered: (word: string) => void;
   addXP: (amount: number) => void;
@@ -168,7 +176,32 @@ export const StoryProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     }));
   };
 
-  const exploreNewTopic = async (topic: string, gradeLevel: string = 'Grade 3-4'): Promise<Story> => {
+  const addGeneratedStory = (generatedStory: Story) => {
+    setStories(prev => [generatedStory, ...prev.filter(s => s.id !== generatedStory.id)]);
+    setActiveStoryId(generatedStory.id);
+
+    const newHistoryEntry: ChildTopicHistory = {
+      id: `hist-${Date.now()}`,
+      topic: generatedStory.topic || generatedStory.title,
+      storyTitle: generatedStory.title,
+      date: 'Just now',
+      durationMinutes: generatedStory.estimatedMinutes || 8,
+      wordsLearned: Object.values(generatedStory.nodes).reduce(
+        (acc, n) => acc + (n.vocabulary?.length || 0),
+        0
+      ),
+      quizScore: 100,
+      lexile: generatedStory.lexileLevel || '580L',
+    };
+    setChildTopicsLearned(prev => [newHistoryEntry, ...prev]);
+  };
+
+  const exploreNewTopic = async (
+    topic: string,
+    gradeLevel: string = 'Grade 3-4',
+    interests: string[] = ['space', 'exploration'],
+    learningObjective?: string
+  ): Promise<Story> => {
     // 1. Check Age-Mismatch
     const evaluation = evaluateTopicAgeRating(topic);
     if (evaluation.isAgeMismatch && parentalControls.alertOnAgeMismatch) {
@@ -187,9 +220,46 @@ export const StoryProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       setAgeMismatchAlerts(prev => [newAlert, ...prev]);
     }
 
-    // 2. Generate structured interactive story
-    const newStoryId = `story-topic-${Date.now()}`;
     const cleanTopic = topic.trim();
+    const effectiveGrade = gradeLevel || parentalControls.maxGradeBand || 'Grade 3-4';
+
+    // 2. Attempt real multi-agent generation via storyService
+    try {
+      const response = await storyService.generateStory({
+        topic: cleanTopic,
+        grade_band: effectiveGrade,
+        interests: interests && interests.length > 0 ? interests : ['exploration', 'science'],
+        learning_objective:
+          learningObjective ||
+          `Understand foundational principles of ${cleanTopic} and its relevance in nature.`,
+      });
+
+      if (response.status === 'rejected_safety') {
+        const safetyReason =
+          response.safety_validation?.reason ||
+          response.errors?.[0] ||
+          'Story was rejected by the safety audit.';
+        throw new Error(`SAFETY_REJECTED: ${safetyReason}`);
+      }
+
+      if (response.story) {
+        const adaptedStory = adaptGeneratedStoryToReader(response);
+        addGeneratedStory(adaptedStory);
+        return adaptedStory;
+      }
+    } catch (apiError: any) {
+      console.warn('Backend AI generation encountered issue, evaluating fallback:', apiError);
+      if (apiError?.message?.startsWith('SAFETY_REJECTED')) {
+        throw apiError;
+      }
+      // Re-throw if error was from an intentional server rejection
+      if (apiError?.response?.status === 400 || apiError?.response?.status === 401 || apiError?.response?.status === 403) {
+        throw apiError;
+      }
+    }
+
+    // 3. Fallback deterministic story generation (preserves offline preview resilience)
+    const newStoryId = `story-topic-${Date.now()}`;
     const capitalizedTopic = cleanTopic.charAt(0).toUpperCase() + cleanTopic.slice(1);
 
     const generatedStory: Story = {
@@ -199,7 +269,7 @@ export const StoryProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       coverImage: heroImg,
       genre: 'STEM Exploration',
       ageRange: 'Ages 8–11',
-      gradeLevel: gradeLevel || parentalControls.maxGradeBand,
+      gradeLevel: effectiveGrade,
       lexileLevel: '580L',
       estimatedMinutes: 9,
       tags: [capitalizedTopic, 'CCSS Aligned', 'Tier-2 Vocab'],
@@ -243,20 +313,6 @@ export const StoryProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               tier: 'Tier 2',
             },
           ],
-          quiz: {
-            id: 'quiz-exp-1',
-            question: `What fundamental principle did ${currentUser.name.split(' ')[0]} apply to begin investigating ${cleanTopic}?`,
-            options: [
-              'Careful observation and empirical data analysis',
-              'Guessing without checking measurements',
-              'Asking a stranger on the sidewalk',
-              'Waiting for someone else to do the research'
-            ],
-            correctIndex: 0,
-            explanation: 'The text highlights that every great scientific discovery begins with careful observation and pattern analysis.',
-            xpReward: 60,
-            ccssStandard: 'CCSS.ELA-LITERACY.RI.3.1',
-          },
           isEnding: false,
         },
         'node-explore-2': {
@@ -278,41 +334,12 @@ export const StoryProvider: React.FC<{ children: ReactNode }> = ({ children }) =
               tier: 'Tier 3',
             },
           ],
-          quiz: {
-            id: 'quiz-exp-2',
-            question: `What was the key outcome of ${currentUser.name.split(' ')[0]}’s research into ${cleanTopic}?`,
-            options: [
-              'A validated hypothesis that answered the core question',
-              'A broken computer monitor',
-              'Deciding to quit exploring forever',
-              'Losing the journal notes'
-            ],
-            correctIndex: 0,
-            explanation: 'The text explicitly states: "The simulation monitors flashed with green confirmation runes. The hypothesis held true!"',
-            xpReward: 80,
-            ccssStandard: 'CCSS.ELA-LITERACY.RI.3.2',
-          },
           isEnding: true,
         },
       },
     };
 
-    // 3. Add to stories and topic history
-    setStories(prev => [generatedStory, ...prev]);
-    setActiveStoryId(generatedStory.id);
-
-    const newHistoryEntry: ChildTopicHistory = {
-      id: `hist-${Date.now()}`,
-      topic: capitalizedTopic,
-      storyTitle: generatedStory.title,
-      date: 'Just now',
-      durationMinutes: 10,
-      wordsLearned: 3,
-      quizScore: 100,
-      lexile: '580L',
-    };
-    setChildTopicsLearned(prev => [newHistoryEntry, ...prev]);
-
+    addGeneratedStory(generatedStory);
     return generatedStory;
   };
 
@@ -332,6 +359,7 @@ export const StoryProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         activeStoryId,
         setActiveStoryId,
         exploreNewTopic,
+        addGeneratedStory,
         masteredWords,
         toggleWordMastered,
         addXP,

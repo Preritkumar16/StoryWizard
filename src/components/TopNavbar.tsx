@@ -60,6 +60,18 @@ export const TopNavbar: React.FC = () => {
                 </Link>
 
                 <Link
+                  to="/story/generate"
+                  className={`px-3 py-2 rounded-lg transition flex items-center gap-1.5 ${
+                    location.pathname === '/story/generate'
+                      ? 'bg-indigo-50 text-indigo-600 font-bold'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>Create Story</span>
+                </Link>
+
+                <Link
                   to={`/story/${activeStoryId || 'story-crystal-cave'}`}
                   className={`px-3 py-2 rounded-lg transition flex items-center gap-1.5 ${
                     location.pathname.startsWith('/story')

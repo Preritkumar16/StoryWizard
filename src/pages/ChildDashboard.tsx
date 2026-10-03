@@ -54,14 +54,19 @@ export const ChildDashboard: React.FC = () => {
     if (!topic) return;
 
     setIsGenerating(true);
-    setGenerationNotice('Analyzing topic readability and synthesizing chapter nodes...');
+    setGenerationNotice('Creating your personalized story and checking it for learning and safety...');
 
     try {
       const generated = await exploreNewTopic(topic, selectedGrade);
       setIsGenerating(false);
       navigate(`/story/${generated.id}`);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.warn('Dashboard story generation notice:', err);
+      if (err?.message?.startsWith('SAFETY_REJECTED')) {
+        setGenerationNotice('Notice: This topic did not pass our child-safety criteria. Please try a different topic.');
+      } else {
+        setGenerationNotice('We could not generate the story right now. You can try another topic or open the full Story Studio.');
+      }
       setIsGenerating(false);
     }
   };
@@ -138,16 +143,26 @@ export const ChildDashboard: React.FC = () => {
 
         {/* Topic Input: "What do you want to learn today?" */}
         <div className="rounded-2xl border-2 border-indigo-200/90 bg-gradient-to-br from-indigo-50/70 via-white to-teal-50/50 p-6 sm:p-8 shadow-sm space-y-6">
-          <div className="max-w-2xl space-y-2">
-            <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
-              AI Adventure Generator
-            </span>
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 font-headline">
-              What do you want to learn today?
-            </h2>
-            <p className="text-xs text-slate-600">
-              Type any topic—from deep sea volcanoes to space telescopes—and AI StoryWizard will craft an interactive story just for you.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="max-w-2xl space-y-2">
+              <span className="text-xs font-bold text-indigo-600 uppercase tracking-wider">
+                AI Adventure Generator
+              </span>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 font-headline">
+                What do you want to learn today?
+              </h2>
+              <p className="text-xs text-slate-600">
+                Type any topic—from deep sea volcanoes to space telescopes—and AI StoryWizard will craft an interactive story just for you.
+              </p>
+            </div>
+            <Link
+              to="/story/generate"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white border border-indigo-200 text-xs font-bold text-indigo-700 hover:bg-indigo-50 shadow-sm transition self-start sm:self-auto shrink-0"
+            >
+              <Sparkles className="h-4 w-4 text-indigo-600" />
+              <span>Custom Objectives & Studio</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
 
           {/* Input & Controls Form */}

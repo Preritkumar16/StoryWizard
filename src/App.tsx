@@ -6,6 +6,7 @@ import { LandingPage } from './pages/LandingPage';
 import { LoginPage } from './pages/LoginPage';
 import { ChildDashboard } from './pages/ChildDashboard';
 import { StoryReader } from './pages/StoryReader';
+import { StoryGenerator } from './pages/StoryGenerator';
 import { ParentControlCenter } from './pages/ParentControlCenter';
 import { VoiceLibrary } from './pages/VoiceLibrary';
 import { ProfileBadges } from './pages/ProfileBadges';
@@ -43,6 +44,9 @@ export function App() {
               {/* Dashboard: Topic generator for Students / Overview for Parents */}
               <Route path="/dashboard" element={<ChildDashboard />} />
               
+              {/* AI Multi-Agent Story Generator */}
+              <Route path="/story/generate" element={<StoryGenerator />} />
+
               {/* Interactive Story Reader */}
               <Route path="/story/:storyId" element={<StoryReader />} />
               <Route path="/story" element={<StoryReader />} />
