@@ -254,11 +254,11 @@ export const StoryGenerator: React.FC = () => {
         {/* Breadcrumb Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-indigo-600">
-              <Compass className="h-4 w-4" />
-              <span>AI Story Studio</span>
+            <div className="flex items-center gap-2 text-xs font-semibold text-indigo-700">
+              <Compass className="h-4 w-4 text-indigo-600" />
+              <span>Story Studio</span>
               <span aria-hidden="true">·</span>
-              <span>LangGraph Multi-Agent Engine</span>
+              <span>Educational Storyteller</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 font-headline mt-1">
               Create a Personalized Educational Story

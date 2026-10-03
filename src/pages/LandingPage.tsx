@@ -38,11 +38,11 @@ export const LandingPage: React.FC = () => {
             
             {/* Hero Text */}
             <div className="lg:col-span-6 space-y-6">
-              <div className="flex items-center gap-2 text-xs font-semibold text-indigo-600">
-                <Sparkles className="h-4 w-4" />
-                <span>Multi-Agent Educational Storytelling</span>
+              <div className="flex items-center gap-2 text-xs font-semibold text-indigo-700">
+                <Sparkles className="h-4 w-4 text-indigo-600" />
+                <span>Personalized Educational Storytelling</span>
                 <span aria-hidden="true">·</span>
-                <span>CCSS & Lexile Aligned</span>
+                <span>Adaptive Reading & Lexile Aligned</span>
               </div>
 
               <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl lg:text-6xl font-headline [text-wrap:balance]">
